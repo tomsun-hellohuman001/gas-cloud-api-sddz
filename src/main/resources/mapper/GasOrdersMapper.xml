@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sddz.gasstation.dao.mapper.GasOrdersMapper">
+  <resultMap id="BaseResultMap" type="com.sddz.gasstation.entity.PC.GasOrders">
+    <constructor>
+      <idArg column="id" javaType="java.lang.Long" jdbcType="BIGINT" />
+      <arg column="order_no" javaType="java.lang.String" jdbcType="VARCHAR" />
+      <arg column="user_id" javaType="java.lang.Long" jdbcType="BIGINT" />
+      <arg column="gas_goods_id" javaType="java.lang.Long" jdbcType="BIGINT" />
+      <arg column="plate_number" javaType="java.lang.String" jdbcType="CHAR" />
+      <arg column="station_id" javaType="java.lang.Long" jdbcType="BIGINT" />
+      <arg column="gun_id" javaType="java.lang.Long" jdbcType="BIGINT" />
+      <arg column="quantity" javaType="java.math.BigDecimal" jdbcType="DECIMAL" />
+      <arg column="price" javaType="java.math.BigDecimal" jdbcType="DECIMAL" />
+      <arg column="total_amount" javaType="java.math.BigDecimal" jdbcType="DECIMAL" />
+      <arg column="pay_amount" javaType="java.math.BigDecimal" jdbcType="DECIMAL" />
+      <arg column="pay_type" javaType="java.lang.Byte" jdbcType="TINYINT" />
+      <arg column="create_time" javaType="java.util.Date" jdbcType="TIMESTAMP" />
+      <arg column="pay_time" javaType="java.util.Date" jdbcType="TIMESTAMP" />
+      <arg column="card_no" javaType="java.lang.String" jdbcType="VARCHAR" />
+    </constructor>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, order_no, user_id, gas_goods_id, plate_number, station_id, gun_id, quantity,
+    price, total_amount, pay_amount, pay_type, create_time, pay_time, card_no
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from gas_orders
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <select id="selectDailyReportByCondition" parameterType="map"
+          resultType="com.sddz.gasstation.dto.GasOrdersDto">
+    select
+    z.name as companyName,
+    y.name as stationName,
+    LEFT(pay_time,10)  as orderDay,
+    count(*) as orderCount,
+    sum(pay_amount) as payAmount
+    from gas_orders x
+    left join gas_station y
+    on x.station_id = y.id
+    left join oil_company z
+    on y.oil_company_id= z.id
+    <where>
+      x.pay_time is not null
+      <if test="companyId != null">
+        and z.id = #{companyId, jdbcType=BIGINT}
+      </if>
+      <if test="stationId != null">
+        and x.station_id = #{stationId, jdbcType=BIGINT}
+      </if>
+      <if test="startTime != null">
+        and x.pay_time &gt;= #{startTime, jdbcType=TIMESTAMP}
+      </if>
+      <if test="endTime != null">
+        and x.pay_time &lt;= #{endTime, jdbcType=TIMESTAMP}
+      </if>
+    </where>
+    group by 1,2,3
+    order by 1,2,3
+    <if test="pageNum != null and pageSize != null">
+      limit ${(pageNum - 1) * pageSize} , #{pageSize}
+    </if>
+  </select>
+  <select id="selectCountGasOrderByCondition" parameterType="map"
+          resultType="Long">
+    select
+    count(1)
+    from gas_orders x
+    left join gas_station y
+    on x.station_id = y.id
+    <where>
+      x.pay_time is not null
+      <if test="stationId != null">
+        and x.station_id = #{stationId, jdbcType=BIGINT}
+      </if>
+      <if test="startTime != null">
+        and x.pay_time &gt;= #{startTime, jdbcType=TIMESTAMP}
+      </if>
+      <if test="endTime != null">
+        and x.pay_time &lt;= #{endTime, jdbcType=TIMESTAMP}
+      </if>
+      <if test="userId != null">
+        and x.user_id = #{userId, jdbcType=BIGINT}
+      </if>
+    </where>
+  </select>
+  <select id="selectGasOrderByCondition" parameterType="map"
+          resultType="com.sddz.gasstation.dto.GasOrdersDto">
+    select
+    x.id,
+    x.pay_time as payTime,
+    y.name as stationName,
+    x.user_id as userId,
+    x.gun_id as gunId,
+    x.pay_amount as payAmount
+    from gas_orders x
+    left join gas_station y
+    on x.station_id = y.id
+    <where>
+      x.pay_time is not null
+      <if test="stationId != null">
+        and x.station_id = #{stationId, jdbcType=BIGINT}
+      </if>
+      <if test="startTime != null">
+        and x.pay_time &gt;= #{startTime, jdbcType=TIMESTAMP}
+      </if>
+      <if test="endTime != null">
+        and x.pay_time &lt;= #{endTime, jdbcType=TIMESTAMP}
+      </if>
+      <if test="userId != null">
+        and x.user_id = #{userId, jdbcType=BIGINT}
+      </if>
+    </where>
+    order by x.pay_time desc
+    <if test="pageNum != null and pageSize != null">
+      limit ${(pageNum - 1) * pageSize} , #{pageSize}
+    </if>
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from gas_orders
+    where id = #{id,jdbcType=BIGINT}
+  </delete>
+  <insert id="insert" parameterType="com.sddz.gasstation.entity.PC.GasOrders">
+    insert into gas_orders (id, order_no, user_id,
+      gas_goods_id, plate_number, station_id,
+      gun_id, quantity, price,
+      total_amount, pay_amount, pay_type,
+      create_time, pay_time, card_no
+      )
+    values (#{id,jdbcType=BIGINT}, #{orderNo,jdbcType=VARCHAR}, #{userId,jdbcType=BIGINT},
+      #{gasGoodsId,jdbcType=BIGINT}, #{plateNumber,jdbcType=CHAR}, #{stationId,jdbcType=BIGINT},
+      #{gunId,jdbcType=BIGINT}, #{quantity,jdbcType=DECIMAL}, #{price,jdbcType=DECIMAL},
+      #{totalAmount,jdbcType=DECIMAL}, #{payAmount,jdbcType=DECIMAL}, #{payType,jdbcType=TINYINT},
+      #{createTime,jdbcType=TIMESTAMP}, #{payTime,jdbcType=TIMESTAMP}, #{cardNo,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.sddz.gasstation.entity.PC.GasOrders">
+    insert into gas_orders
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="orderNo != null">
+        order_no,
+      </if>
+      <if test="userId != null">
+        user_id,
+      </if>
+      <if test="gasGoodsId != null">
+        gas_goods_id,
+      </if>
+      <if test="plateNumber != null">
+        plate_number,
+      </if>
+      <if test="stationId != null">
+        station_id,
+      </if>
+      <if test="gunId != null">
+        gun_id,
+      </if>
+      <if test="quantity != null">
+        quantity,
+      </if>
+      <if test="price != null">
+        price,
+      </if>
+      <if test="totalAmount != null">
+        total_amount,
+      </if>
+      <if test="payAmount != null">
+        pay_amount,
+      </if>
+      <if test="payType != null">
+        pay_type,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+      <if test="payTime != null">
+        pay_time,
+      </if>
+      <if test="cardNo != null">
+        card_no,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=BIGINT},
+      </if>
+      <if test="orderNo != null">
+        #{orderNo,jdbcType=VARCHAR},
+      </if>
+      <if test="userId != null">
+        #{userId,jdbcType=BIGINT},
+      </if>
+      <if test="gasGoodsId != null">
+        #{gasGoodsId,jdbcType=BIGINT},
+      </if>
+      <if test="plateNumber != null">
+        #{plateNumber,jdbcType=CHAR},
+      </if>
+      <if test="stationId != null">
+        #{stationId,jdbcType=BIGINT},
+      </if>
+      <if test="gunId != null">
+        #{gunId,jdbcType=BIGINT},
+      </if>
+      <if test="quantity != null">
+        #{quantity,jdbcType=DECIMAL},
+      </if>
+      <if test="price != null">
+        #{price,jdbcType=DECIMAL},
+      </if>
+      <if test="totalAmount != null">
+        #{totalAmount,jdbcType=DECIMAL},
+      </if>
+      <if test="payAmount != null">
+        #{payAmount,jdbcType=DECIMAL},
+      </if>
+      <if test="payType != null">
+        #{payType,jdbcType=TINYINT},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="payTime != null">
+        #{payTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="cardNo != null">
+        #{cardNo,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.sddz.gasstation.entity.PC.GasOrders">
+    update gas_orders
+    <set>
+      <if test="orderNo != null">
+        order_no = #{orderNo,jdbcType=VARCHAR},
+      </if>
+      <if test="userId != null">
+        user_id = #{userId,jdbcType=BIGINT},
+      </if>
+      <if test="gasGoodsId != null">
+        gas_goods_id = #{gasGoodsId,jdbcType=BIGINT},
+      </if>
+      <if test="plateNumber != null">
+        plate_number = #{plateNumber,jdbcType=CHAR},
+      </if>
+      <if test="stationId != null">
+        station_id = #{stationId,jdbcType=BIGINT},
+      </if>
+      <if test="gunId != null">
+        gun_id = #{gunId,jdbcType=BIGINT},
+      </if>
+      <if test="quantity != null">
+        quantity = #{quantity,jdbcType=DECIMAL},
+      </if>
+      <if test="price != null">
+        price = #{price,jdbcType=DECIMAL},
+      </if>
+      <if test="totalAmount != null">
+        total_amount = #{totalAmount,jdbcType=DECIMAL},
+      </if>
+      <if test="payAmount != null">
+        pay_amount = #{payAmount,jdbcType=DECIMAL},
+      </if>
+      <if test="payType != null">
+        pay_type = #{payType,jdbcType=TINYINT},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="payTime != null">
+        pay_time = #{payTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="cardNo != null">
+        card_no = #{cardNo,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.sddz.gasstation.entity.PC.GasOrders">
+    update gas_orders
+    set order_no = #{orderNo,jdbcType=VARCHAR},
+      user_id = #{userId,jdbcType=BIGINT},
+      gas_goods_id = #{gasGoodsId,jdbcType=BIGINT},
+      plate_number = #{plateNumber,jdbcType=CHAR},
+      station_id = #{stationId,jdbcType=BIGINT},
+      gun_id = #{gunId,jdbcType=BIGINT},
+      quantity = #{quantity,jdbcType=DECIMAL},
+      price = #{price,jdbcType=DECIMAL},
+      total_amount = #{totalAmount,jdbcType=DECIMAL},
+      pay_amount = #{payAmount,jdbcType=DECIMAL},
+      pay_type = #{payType,jdbcType=TINYINT},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      pay_time = #{payTime,jdbcType=TIMESTAMP},
+      card_no = #{cardNo,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+</mapper>

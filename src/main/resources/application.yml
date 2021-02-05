@@ -1,0 +1,22 @@
+# Web�������˿�
+server:
+  port: 8181
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: gas-cloud-api-sddz
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+#    url: jdbc:mysql://121.36.10.175:3306/gas_station?useUnicode=true&characterEncoding=utf-8
+    url: jdbc:mysql://localhost:13306/gas_station?useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC
+    username: root
+    password: 123456Ab?
+
+mybatis:
+  mapper-locations: classpath:*/*Mapper.xml
+  type-aliases-package: com.example.entity
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+

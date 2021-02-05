@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sddz.gasstation.dao.mapper.WxGasApiMapper">
+    <resultMap id="BaseStationNavigate" type="com.sddz.gasstation.entity.wx.StationNavigate">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="address" property="address"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modifier" property="modifier"/>
+        <result column="modify_time" property="modifyTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="longitude" property="longitude"/>
+        <result column="latitude" property="latitude"/>
+        <result column="citycode" property="citycode"/>
+        <result column="contact" property="contact"/>
+        <result column="contact_phone" property="contactPhone"/>
+        <result column="oil_company_id" property="oilCompanyId"/>
+        <result column="local_ip" property="localIp"/>
+        <result column="mp_id" property="mpId"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="cityName" property="cityName"/>
+        <result column="area" property="area"/>
+        <result column="areaName" property="areaName"/>
+        <result column="serve" property="serve"/>
+        <result column="discount" property="discount"/>
+        <collection property="stationProductList" javaType="java.util.ArrayList" select="getStationProdcut" column="{stationId=id}" />
+    </resultMap>
+    <resultMap id="BaseStationProduct" type="com.sddz.gasstation.entity.wx.StationProduct">
+        <result column="gas_station_id" property="gasStationId"/>
+        <result column="listing_price" property="listingPrice"/>
+        <result column="member_price" property="memberPrice"/>
+        <result column="name" property="name"/>
+        <result column="type" property="type"/>
+        <result column="standard" property="standard"/>
+    </resultMap>
+    <select id="getAdminGasStation" parameterType="map"
+            resultType="com.sddz.gasstation.entity.wx.GasStationLocationInfo">
+        SELECT t.id,t.name,ROUND(t.latitude,2) as latitude,ROUND(t.longitude,2) as
+        longitude,ROUND(Spherical_Distance(#{longitude},#{latitude},t.longitude,t.latitude)/1000,2) as distance from
+        gas_station t,admin_user_gas_station t1 where t.deleted=0 and t.name is not null and t.id=t1.gas_station_id
+        <if test="gasmc != null and gasmc != ''">
+            and (t.name like CONCAT('%',#{gasmc},'%')
+        </if>
+        <if test="citycode != null and citycode != ''">
+            and t.citycode=#{citycode}
+        </if>
+        and t1.admin_user_id=#{userId}
+        order by distance
+    </select>
+    <select id="getStationNavigate" resultMap="BaseStationNavigate">
+        SELECT
+            gs.id,
+            gs.`name`,
+            gs.address,
+            gs.creator,
+            gs.create_time,
+            gs.modifier,
+            gs.modify_time,
+            gs.deleted,
+            gs.longitude,
+            gs.latitude,
+            gs.citycode,
+            gs.contact,
+            gs.contact_phone,
+            gs.oil_company_id,
+            gs.local_ip,
+            gs.mp_id,
+            gs.province,
+            gs.city,
+            aca1.`name` as cityName,
+            gs.area,
+            aca2.`name` as areaName,
+            gs.serve,
+            gs.discount
+        FROM  gas_station gs
+        left join admin_china_area aca1 on gs.city = aca1.id left join admin_china_area aca2 on gs.area = aca2.id
+        <if test="lng != null and lat !=null">
+            left join (
+            SELECT
+            gs.id,
+            ROUND(
+            6371.393 * 2 * ASIN(
+            SQRT(
+            POW( SIN( ( 36.689085 * 3.1415926 / 180 - latitude * PI() / 180 ) / 2 ), 2 ) + COS( 36.689085 * 3.1415926 / 180 ) * COS( latitude * PI() / 180 ) * POW( SIN( ( 117.1679 * 3.1415926 / 180 - longitude * PI() / 180 ) / 2 ), 2 )
+            )
+            )
+            ) AS distance_um
+            FROM
+            gas_station gs
+            ) gs1 on gs1.id = gs.id
+        </if>
+        <where>
+            gs.deleted !=1
+            <if test="companyId !=null and companyId !=''">
+                and gs.oil_company_id = #{companyId}
+            </if>
+            <if test="city !=null">
+                and gs.city = #{city}
+            </if>
+            <if test="stationName !=null">
+                and gs.NAME like CONCAT('%',#{stationName},'%')
+            </if>
+            <if test="distance !=null and lng != null and lat !=null">
+                and gs1.distance_um &lt; #{distance}
+            </if>
+        </where>
+        <if test="sort!=null and lng != null and lat !=null">
+            order by gs1.distance_um ${sort}
+        </if>
+    </select>
+    <select id="getStationProdcut" resultMap="BaseStationProduct">
+        SELECT
+            os.gas_station_id,
+            os.listing_price,
+            os.member_price,
+            gt.`name`,
+            gt.type,
+            gt.standard
+        FROM
+            oil_sale os
+            LEFT JOIN oil_product op ON os.oil_product_id = op.id
+            LEFT JOIN gas_type gt ON op.gas_type_id = gt.id
+            <where>
+                os.`status` = 1
+                <if test="stationId!=null">
+                  and  os.gas_station_id = #{stationId}
+                </if>
+            </where>
+    </select>
+</mapper>
