@@ -25,6 +25,8 @@ public class GasStationController {
     @Autowired
     private GasStationService gasStationService;
 
+    // 测试一下
+
     @GetMapping(value = "/showGasStation/{id}")
     @ResponseBody
     public GasStation select(@PathVariable("id") Long id){
